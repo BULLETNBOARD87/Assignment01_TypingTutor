@@ -1,7 +1,9 @@
 package com.mycompany.mavenproject1;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javafx.application.Application;
 import static javafx.application.Application.launch;
 import javafx.geometry.Insets;
@@ -13,6 +15,8 @@ import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 
 
@@ -20,12 +24,14 @@ import javafx.stage.Stage;
  * JavaFX App
  */
 public class App extends Application {
-    private final TextArea displayArea = new TextArea();
+    private final Label targetTextLabel = new Label("The quick brown fox jumps over the lazy dog.");
+    PhysicalInputHandler physicalPanel = new PhysicalInputHandler();
+    private final Map<String, Button> keyButtonMap = new HashMap<>();
     
     // Tracking for the shift button.
-    private boolean isShiftActive = false;
+    public boolean isShiftActive = false;
     private Button shiftButton;
-
+   
     //Keyboard layout, in four rows
     private final String[] row1 = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "Backspace"};
     private final String[] row2 = {"Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"};
@@ -36,9 +42,10 @@ public class App extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        displayArea.setPrefRowCount(4);
-        displayArea.setWrapText(true);
-        displayArea.setEditable(false);
+        targetTextLabel.setFont(Font.font("System", FontWeight.BOLD, 16));
+        targetTextLabel.setStyle("-fx-text-fill: #555555; -fx-background-color: #f0f0f0; -fx-padding: 10px; -fx-background-radius: 5px;");
+        targetTextLabel.setPrefWidth(610);
+        targetTextLabel.setAlignment(Pos.CENTER_LEFT);
 
         VBox mainLayout = new VBox(15);
         mainLayout.setPadding(new Insets(20));
@@ -50,13 +57,15 @@ public class App extends Application {
         keyboardLayout.getChildren().add(createKeyboardRow(row1));
         keyboardLayout.getChildren().add(createKeyboardRow(row2));
         keyboardLayout.getChildren().add(createKeyboardRow(row3));
-        
+      
         //Keyboard row 4.
         HBox hBoxRow4 = createKeyboardRow(row4);
         shiftButton = new Button("Shift");
         shiftButton.setPrefSize(80, 40);
         shiftButton.setStyle("-fx-font-weight: bold; -fx-background-color: #d1d1d1;");
         shiftButton.setOnAction(e -> toggleShift());
+        keyButtonMap.put("SHIFT", shiftButton);
+        shiftButton.setFocusTraversable(false);
         hBoxRow4.getChildren().add(0, shiftButton); //Force the shift key to be at the start of row 4.
         keyboardLayout.getChildren().add(hBoxRow4);
 
@@ -65,28 +74,21 @@ public class App extends Application {
         hBoxRow5.setAlignment(Pos.CENTER);
         Button spaceButton = new Button("Space");
         spaceButton.setPrefSize(300, 40);
-        spaceButton.setOnAction(e -> displayArea.appendText(" "));
+        keyButtonMap.put("SPACE", spaceButton);
         hBoxRow5.getChildren().add(spaceButton);
         keyboardLayout.getChildren().add(hBoxRow5);
 
-        mainLayout.getChildren().addAll(displayArea, keyboardLayout);
-
+        mainLayout.getChildren().addAll(targetTextLabel, physicalPanel, keyboardLayout);
+        
         Scene scene = new Scene(mainLayout, 650, 450);
+        physicalPanel.attachKeyboardListeners(scene, this);
+        
         primaryStage.setTitle("JavaFX Virtual Keyboard");
         primaryStage.setScene(scene);
+        mainLayout.requestFocus();
         primaryStage.show();
     }
-    
-    /**
-     * Helper method for handling removing text from the user's text field.
-     */
-    private void handleBackspace() {
-        String currentText = displayArea.getText();
-        if (!currentText.isEmpty()) {
-            displayArea.setText(currentText.substring(0, currentText.length() - 1));
-        }
-    }
-    
+        
     /**
      * Generates a keyboard row with the includes keys.
      * Has special functionality for backspace and shift.
@@ -94,51 +96,55 @@ public class App extends Application {
      * @return a row of keys.
      */
     private HBox createKeyboardRow(String[] keys) {
-        HBox row = new HBox(8);
-        row.setAlignment(Pos.CENTER);
+    HBox row = new HBox(8);
+    row.setAlignment(Pos.CENTER);
 
-        for (String key : keys) {
-            Button btn = new Button(key.toLowerCase());
-            btn.setPrefSize(50, 40);
-            
-            // Backspace needs to be a larger size, mimicing proper keyboards.
+    for (String key : keys) {
+        Button btn = new Button(key.toLowerCase()); 
+        btn.setPrefSize(50, 40);
+        btn.setFocusTraversable(false);
+        btn.setMouseTransparent(true); 
+
             if (key.equals("Backspace")) {
                 btn.setText("⌫");
                 btn.setPrefSize(90, 40);
-                btn.setOnAction(e -> handleBackspace());
+                keyButtonMap.put("BACK_SPACE", btn);
             } else {
                 letterButtons.add(btn);
-                btn.setOnAction(e -> {
-                    displayArea.appendText(btn.getText());
-                    // Turns off the shift key once a key has been pressed.
-                    if (isShiftActive) {
-                        toggleShift();
-                    }
-                });
+                keyButtonMap.put(key.toUpperCase(), btn);
             }
-            row.getChildren().add(btn);
+            
+        row.getChildren().add(btn);
         }
         return row;
     }
     
-    private void toggleShift() {
+    /**
+     * Placeholder
+     */
+    public void toggleShift() {
         isShiftActive = !isShiftActive;
-        
         if (isShiftActive) {
             shiftButton.setStyle("-fx-font-weight: bold; -fx-background-color: #3a86ff; -fx-text-fill: white;");
             for (Button btn : letterButtons) {
                 btn.setText(btn.getText().toUpperCase());
             }
         } else {
-            shiftButton.setStyle("-fx-font-weight: bold; -fx-background-color: #d1d1d1; -fx-text-fill: black;");
+            shiftButton.setStyle(""); // Returns to default style
             for (Button btn : letterButtons) {
                 btn.setText(btn.getText().toLowerCase());
             }
         }
     }
 
+    public Map<String, Button> getKeyButtonMap() {
+        return keyButtonMap;
+    }
+    
     public static void main(String[] args) {
         launch();
     }
+
+    
 
 }
