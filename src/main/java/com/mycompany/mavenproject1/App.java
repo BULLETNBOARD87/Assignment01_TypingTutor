@@ -28,6 +28,21 @@ public class App extends Application {
     PhysicalInputHandler physicalPanel = new PhysicalInputHandler();
     private final Map<String, Button> keyButtonMap = new HashMap<>();
     
+    private final String[] practicePhrases = {
+        "The quick brown fox jumps over the lazy dog.",
+        "JavaFX applications are modular and clean.",
+        "Object oriented programming is powerful.",
+        "Always practice typing to build muscle memory.",
+        "Software engineers look for simple clean solutions.",
+        "Keep code structured with distinct responsibilities."
+    };
+    
+    private int currentPhraseIndex = 0;
+
+    private final Label counterLabel = new Label("1 of 6");
+    private Button nextButton;
+    private Button resetButton;
+    
     // Tracking for the shift button.
     public boolean isShiftActive = false;
     private Button shiftButton;
@@ -42,6 +57,8 @@ public class App extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        HBox controlBar = createControlBar(physicalPanel);
+        
         targetTextLabel.setFont(Font.font("System", FontWeight.BOLD, 16));
         targetTextLabel.setStyle("-fx-text-fill: #555555; -fx-background-color: #f0f0f0; -fx-padding: 10px; -fx-background-radius: 5px;");
         targetTextLabel.setPrefWidth(610);
@@ -75,14 +92,15 @@ public class App extends Application {
         Button spaceButton = new Button("Space");
         spaceButton.setPrefSize(300, 40);
         keyButtonMap.put("SPACE", spaceButton);
+        spaceButton.setFocusTraversable(false);
+        spaceButton.setMouseTransparent(true); 
         hBoxRow5.getChildren().add(spaceButton);
         keyboardLayout.getChildren().add(hBoxRow5);
-
-        mainLayout.getChildren().addAll(targetTextLabel, physicalPanel, keyboardLayout);
         
         Scene scene = new Scene(mainLayout, 650, 450);
         physicalPanel.attachKeyboardListeners(scene, this);
         
+        mainLayout.getChildren().addAll(targetTextLabel, physicalPanel, controlBar, keyboardLayout);
         primaryStage.setTitle("JavaFX Virtual Keyboard");
         primaryStage.setScene(scene);
         mainLayout.requestFocus();
@@ -136,6 +154,54 @@ public class App extends Application {
             }
         }
     }
+    
+    /**
+     * PLACEHOLDER
+     * @param physicalPanel 
+     */
+    private void updateApplicationState(PhysicalInputHandler physicalPanel) {
+        
+    targetTextLabel.setText(practicePhrases[currentPhraseIndex]);
+    
+    physicalPanel.clearInputLabel();
+    counterLabel.setText((currentPhraseIndex + 1) + " of " + practicePhrases.length);
+}
+    
+    /**
+     * PLACEHOLDER
+     * @param physicalPanel
+     * @return 
+     */
+    private HBox createControlBar(PhysicalInputHandler physicalPanel) {
+    HBox controlBar = new HBox(15);
+    controlBar.setAlignment(Pos.CENTER);
+    
+    // Configure Counter
+    counterLabel.setFont(Font.font("System", FontWeight.BOLD, 14));
+    
+    // Configure Next Button (Requirement 9 & 10)
+    nextButton = new Button("Next");
+    nextButton.setFocusTraversable(false); // Crucial: Prevents spacebar interception
+    nextButton.setOnAction(e -> {
+        if (currentPhraseIndex < practicePhrases.length - 1) {
+            currentPhraseIndex++;
+        } else {
+            currentPhraseIndex = 0; // Wrap around to index 0 or keep last (assignment allows flexible text cycling)
+        }
+        updateApplicationState(physicalPanel);
+    });
+
+    // Configure Reset Button (Requirement 11)
+    resetButton = new Button("Reset");
+    resetButton.setFocusTraversable(false); // Crucial: Prevents spacebar interception
+    resetButton.setOnAction(e -> {
+        currentPhraseIndex = 0; // Return to input text 1
+        updateApplicationState(physicalPanel);
+    });
+
+    controlBar.getChildren().addAll(counterLabel, nextButton, resetButton);
+    return controlBar;
+}
 
     public Map<String, Button> getKeyButtonMap() {
         return keyButtonMap;
